@@ -4,7 +4,7 @@ node {
     'APP_NAME= fusetest',
     'USER_NAME= kubeadmin',
     'OSE_SERVER= https://api.met-police.poc-optimus.co.uk:6443',
-    'DEVEL_PROJ_NAME= openshift',
+    'DEVEL_PROJ_NAME= test-fuse-application',
     'DEPLOYCONFIG= s2i-fuse75-spring-boot-camel-xml',
     'USER_PASSWD= iZjHx-2IAke-yoihs-fxc6R']){
     
@@ -50,7 +50,6 @@ node {
         //comment this line to test pipeline
         sh """oc start-build ${BUILD_CONFIG}"""
       }
-
       println "Waiting for build to start"
       def rc=1;
       def attempts=5;
@@ -78,7 +77,6 @@ node {
       } //end of waiting for build to start
       //comment this line to test pipeline
       sh """oc build-logs ${BUILD_ID}"""
-
       println "Checking build result status"
       rc=1;
       count=0;
@@ -108,8 +106,10 @@ node {
       //Scale up the test deployment
       def RC_ID = sh (script: "oc get rc | tail -1 | awk '{print \$1}'",returnStdout: true).trim()
       println "RC_ID: ${RC_ID}"
-      def statuscode = sh (script: "curl -Is --connect-timeout 2 ${APP_HOSTNAME}|head -1|awk '{print \$2}'",returnStdout: true).trim()
-      println "statuscode is: ${statuscode}"
+      def podname = sh (script: "oc get po | grep Running |awk '{print \$1}'",returnStdout: true).trim()
+      def ipaddress = sh (script: "oc describe pod ${podname} | grep IP:|awk '{print \$2}'",returnStdout: true).trim()
+      println "ip address is : ${ipaddress}"
+      def statuscode = sh (script: "curl -Is --connect-timeout 2 ${ipaddress}:8081/health|head -1|awk '{print \$2}'",returnStdout: true).trim()
       println "Scaling up new deployment"
       //comment the below line to test the pipeline
       sh"""oc scale --replicas=1 rc ${RC_ID}"""
